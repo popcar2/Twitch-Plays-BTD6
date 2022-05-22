@@ -12,27 +12,10 @@ use std::collections::HashMap;
 use parking_lot::Mutex;
 use std::sync::Arc;
 
-use eframe::egui;
-use eframe::emath::{ Pos2, Vec2 };
-
 mod voting;
 
-fn main(){
-    // Starts tokio runtime
-    std::thread::spawn(tokio_main);
-
-    // Starts egui runtime
-    let mut native_options = eframe::NativeOptions::default();
-    native_options.always_on_top = true;
-    native_options.decorated = false;
-    native_options.transparent = true;
-    native_options.initial_window_pos = Some(Pos2::new(0.0, 0.0));
-    //native_options.initial_window_size = Some(Vec2::new(1920.0, 1080.0));
-    eframe::run_native("Twitch Plays BTD6", native_options, Box::new(|cc| Box::new(MyEguiApp::new(cc))));
-}
-
 #[tokio::main]
-pub async fn tokio_main() {
+pub async fn main() {
     let votes: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let phase: Arc<Mutex<voting::VotingPhase>> = Arc::new(Mutex::new(voting::VotingPhase::Regular));
     
@@ -77,30 +60,4 @@ pub async fn tokio_main() {
 
     join_handle.await.unwrap();
     forever.await.unwrap();
-}
-
-#[derive(Default)]
-struct MyEguiApp {}
-
-impl MyEguiApp {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // Customize egui here with cc.egui_ctx.set_fonts and cc.egui_ctx.set_visuals.
-        // Restore app state using cc.storage (requires the "persistence" feature).
-        // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
-        // for e.g. egui::PaintCallback.
-        Self::default()
-    }
-}
-
-impl eframe::App for MyEguiApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        egui::Window::new("My Window").show(ctx, |ui| {
-            ui.label("Hello World!");
-         });
-    }
-
-    fn clear_color(&self, _visuals: &egui::Visuals) -> egui::Rgba {
-        //_visuals.dark_mode = true;
-        egui::Rgba::TRANSPARENT
-    }
 }
