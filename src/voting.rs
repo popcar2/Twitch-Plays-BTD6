@@ -7,64 +7,20 @@ use std::time::Duration;
 
 pub enum VotingPhase{
     Regular,
-    Placement
-}
-
-// Used in two places: placement mode (ex: b23) and selection in regular mode (ex: select b23)
-fn validate_location(location_text: &str) -> bool{
-
-    // Range is from a-w 1-32 because these are usable locations in the play area
-    // Checks in order: is in placement phase, first letter between a and x, 2nd char is a number
-    if location_text.len() > 1 
-    && "abcdefghijklmnopqrstuvw".contains(location_text.to_lowercase().chars().next().unwrap())
-    && location_text.chars().nth(1).unwrap().is_numeric(){
-        // has 2 numbers (ex: a17). Can't go higher than 32.
-        if location_text.len() > 2{
-            if location_text.chars().nth(2).unwrap().is_numeric(){
-                let tile_num = String::from(location_text)[1..3].parse::<u8>().unwrap();
-                if tile_num > 0 && tile_num < 33{
-                    return true;
-                }
-                return false;
-            }
-            return false;
-        }
-    
-        // only 1 number (ex: a7). This can't be 0 (ex: a0)
-        if location_text.chars().nth(1).unwrap() != '0'{
-            return true;
-        }
-    }
-    return false;
-}
-
-fn calculate_location(location_text: &str) -> (i32, i32){
-    // Adding 1 to row and column's defaults so it doesn't click the very edge of the screen and instead starts a little inwards.
-    let row: u32 = "abcdefghijklmnopqrstuvw".find(location_text.chars().next().unwrap()).unwrap() as u32 + 1;
-    let column: u32;
-    
-    // TODO: Get resolution and scaling % and left padding
-    if location_text.len() > 2{
-        column = String::from(location_text)[1..3].parse::<u32>().unwrap();
-    }
-    else{
-        column = String::from(location_text)[1..2].parse::<u32>().unwrap();
-    }
-
-    let x_dist = (f64::from(1920 / 40 * column + 25) / 1.25).floor() as i32;
-    let y_dist = (f64::from(1080 / 24 * row) / 1.25).floor() as i32;
-
-    (x_dist, y_dist)
+    Placement,
+    Upgrade
 }
 
 // Validate this is proper vote syntax
 // The only exception which doesn't use this function is "select" which is handled by validate_vote_select()
 // since that uses a different timer and hashmap.
 pub fn validate_vote(message_text: &str, phase: &VotingPhase) -> bool{
+    let message_text: &str = &message_text.to_lowercase();
+
     // Choose a tower (ex: tower bomb)
-    if matches!(phase, VotingPhase::Regular) && message_text.to_lowercase().starts_with("tower "){
-        let second_word = message_text.split(" ").nth(1).unwrap().trim_end().to_lowercase();
-        match second_word.as_str(){
+    if matches!(phase, VotingPhase::Regular) && message_text.starts_with("tower "){
+        let second_word = message_text.split(" ").nth(1).unwrap();
+        match second_word{
             "hero" | "dart" | "boomerang" | "bomb" | "tack" | "ice"
             | "glue" | "sniper" | "sub" | "buccaneer" | "ace" | "heli"
             | "mortar" | "gunner" | "wizard" | "super" | "ninja"
@@ -74,8 +30,24 @@ pub fn validate_vote(message_text: &str, phase: &VotingPhase) -> bool{
         }
     }
 
+    // Place a tower (ex: a24)
     else if matches!(phase, VotingPhase::Placement) && validate_location(message_text){
         return true;
+    }
+
+    // Upgrade a tower (ex: upgrade f17)
+    else if matches!(phase, VotingPhase::Regular) && message_text.starts_with("upgrade "){
+        let second_word = message_text.split(" ").nth(1).unwrap();
+        if validate_location(second_word){
+            return true;
+        }
+    }
+
+    else if matches!(phase, VotingPhase::Upgrade){
+        match message_text{
+            "1" | "2" | "3" => { return true; }
+            _ => {}
+        }
     }
     return false;
 }
@@ -92,7 +64,7 @@ pub fn validate_vote_select(message_text: &str, phase: &VotingPhase) -> bool{
 }
 
 pub fn add_vote(votes: &mut HashMap<String, String>, user_id: String, message_text: String){
-    println!("{}", message_text.to_lowercase());
+    println!("VOTE: {}", message_text.to_lowercase());
     votes.insert(user_id, message_text.to_lowercase());
 
     /*for (key, value) in &*votes{
@@ -133,6 +105,11 @@ pub fn collect_votes(votes: &mut HashMap<String, String>, phase: &mut VotingPhas
         activate_vote(highest_vote, phase);
     }
     else{
+        // Switch back to regular phase if there's no input in the upgrade phase
+        if matches!(phase, VotingPhase::Upgrade){
+            println!("No input, switching back to regular phase...");
+            *phase = VotingPhase::Regular;
+        }
         //println!("Nobody voted, nothing happened...");
     }
 }
@@ -246,6 +223,28 @@ fn activate_vote(final_vote: String, phase: &mut VotingPhase){
         println!("Entering regular phase...");
     }
 
+    // Initiate upgrading a tower
+    else if matches!(phase, VotingPhase::Regular) && first_word == "upgrade"{
+        // The code is the same as selecting a tower, but we change the phase
+        let second_word = final_vote.split(" ").nth(1).unwrap();
+
+        let (x_dist, y_dist) = calculate_location(second_word);
+
+        select_logic(x_dist, y_dist);
+        *phase = VotingPhase::Upgrade;
+        println!("Entering upgrade phase...");
+    }
+
+    // Upgrade a tower
+    else if matches!(phase, VotingPhase::Upgrade){
+        match final_vote.as_str(){
+            "1" => { Keyboard::Comma.click(); *phase = VotingPhase::Regular; },
+            "2" => { Keyboard::Period.click(); *phase = VotingPhase::Regular; },
+            "3" => { Keyboard::Slash.click(); *phase = VotingPhase::Regular; },
+            _ => {}
+        }
+    }
+
     // Shorter votes only
     else if matches!(phase, VotingPhase::Regular) && first_word == "select"{
         let second_word = final_vote.split(" ").nth(1).unwrap();
@@ -274,4 +273,51 @@ fn select_logic(x_dist: i32, y_dist: i32){
         mouse.press(&Keys::LEFT).expect("Unable to press button");
         mouse.release(&Keys::LEFT).expect("Unable to release button");
     });
+}
+
+// Used in two places: placement mode (ex: b23) and selection in regular mode (ex: select b23)
+fn validate_location(location_text: &str) -> bool{
+
+    // Range is from a-w 1-32 because these are usable locations in the play area
+    // Checks in order: is in placement phase, first letter between a and x, 2nd char is a number
+    if location_text.len() > 1 
+    && "abcdefghijklmnopqrstuvw".contains(location_text.to_lowercase().chars().next().unwrap())
+    && location_text.chars().nth(1).unwrap().is_numeric(){
+        // has 2 numbers (ex: a17). Can't go higher than 32.
+        if location_text.len() > 2{
+            if location_text.chars().nth(2).unwrap().is_numeric(){
+                let tile_num = String::from(location_text)[1..3].parse::<u8>().unwrap();
+                if tile_num > 0 && tile_num < 33{
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        }
+    
+        // only 1 number (ex: a7). This can't be 0 (ex: a0)
+        if location_text.chars().nth(1).unwrap() != '0'{
+            return true;
+        }
+    }
+    return false;
+}
+
+fn calculate_location(location_text: &str) -> (i32, i32){
+    // Adding 1 to row and column's defaults so it doesn't click the very edge of the screen and instead starts a little inwards.
+    let row: u32 = "abcdefghijklmnopqrstuvw".find(location_text.chars().next().unwrap()).unwrap() as u32 + 1;
+    let column: u32;
+    
+    // TODO: Get resolution and scaling % and left padding
+    if location_text.len() > 2{
+        column = String::from(location_text)[1..3].parse::<u32>().unwrap();
+    }
+    else{
+        column = String::from(location_text)[1..2].parse::<u32>().unwrap();
+    }
+
+    let x_dist = (f64::from(1920 / 40 * column + 25) / 1.25).floor() as i32;
+    let y_dist = (f64::from(1080 / 24 * row) / 1.25).floor() as i32;
+
+    (x_dist, y_dist)
 }

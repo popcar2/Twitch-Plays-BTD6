@@ -18,7 +18,7 @@ mod voting;
 
 //const SCREEN_X: i32 = 1920;
 //const SCREEN_Y: i32 = 1080;
-const DEFAULT_TIMER: i32 = 4;
+const DEFAULT_TIMER: i32 = 10;
 const DEFAULT_SHORT_TIMER: i32 = 2;
 
 #[tokio::main]
@@ -79,7 +79,10 @@ pub async fn main() {
             }
             else if countdown_shorter <= 0{
                 let mut shorter_votes_arc = shorter_votes_arc.lock();
-                voting::collect_votes(&mut shorter_votes_arc, &mut phase_arc);
+                // The if statement is so it doesn't reset phases if no input
+                if !(*shorter_votes_arc).is_empty(){
+                    voting::collect_votes(&mut shorter_votes_arc, &mut phase_arc);
+                }
                 countdown_shorter = DEFAULT_SHORT_TIMER;
             }
         }
