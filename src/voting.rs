@@ -42,7 +42,7 @@ pub fn validate_vote(message_text: &str, phase: &VotingPhase) -> bool{
         }
     }
 
-    // Select
+    // Select (ex: select d20)
     else if matches!(phase, VotingPhase::Regular) && message_text.starts_with("select "){
         let second_word = message_text.split(" ").nth(1).unwrap();
 
@@ -51,12 +51,13 @@ pub fn validate_vote(message_text: &str, phase: &VotingPhase) -> bool{
         }
     }
 
-    // Start / Speed up and down, sell, targeting
+    // One-word commands such as start, speed, sell, and targeting
     else if matches!(phase, VotingPhase::Regular) && (message_text == "start" || message_text == "speed" 
     || message_text == "sell" || message_text == "targeting"){
         return true;
     }
 
+    // Ability (ex: ability 3)
     else if matches!(phase, VotingPhase::Regular) && message_text.starts_with("ability "){
         let second_word = message_text.split(" ").nth(1).unwrap();
 
@@ -80,7 +81,7 @@ pub fn add_vote(votes: &mut HashMap<String, String>, user_id: String, message_te
 pub fn collect_votes(votes: &mut HashMap<String, String>, phase: &mut VotingPhase){
     let mut vote_results: HashMap<String, i32> = HashMap::new();
 
-    // Count votes and keep the highest one
+    // Count votes into a new hashmap
     for (_user_id, message_text) in votes.into_iter(){
         if vote_results.contains_key(message_text){
             let value = vote_results.get(message_text).unwrap().to_owned();
@@ -94,6 +95,7 @@ pub fn collect_votes(votes: &mut HashMap<String, String>, phase: &mut VotingPhas
     let mut highest_vote = String::new();
     let mut highest_count = 0;
 
+    // Keep the highest vote
     for (message_text, value) in vote_results.into_iter(){
         println!("{} / {}", message_text, value);
         if value > highest_count{
