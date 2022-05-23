@@ -11,8 +11,6 @@ pub enum VotingPhase{
 }
 
 // Validate this is proper vote syntax
-// The only exception which doesn't use this function is "select" which is handled by validate_vote_select()
-// since that uses a different timer and hashmap.
 pub fn validate_vote(message_text: &str, phase: &VotingPhase) -> bool{
     let message_text: &str = &message_text.to_lowercase();
 
@@ -58,20 +56,16 @@ pub fn validate_vote(message_text: &str, phase: &VotingPhase) -> bool{
     || message_text == "sell" || message_text == "targeting"){
         return true;
     }
-    return false;
-}
 
-/* TODO: Remove?
-pub fn validate_vote_select(message_text: &str, phase: &VotingPhase) -> bool{
-    if matches!(phase, VotingPhase::Regular) && message_text.to_lowercase().starts_with("select "){
-        let second_word = message_text.split(" ").nth(1).unwrap().trim_end().to_lowercase();
+    else if matches!(phase, VotingPhase::Regular) && message_text.starts_with("ability "){
+        let second_word = message_text.split(" ").nth(1).unwrap();
 
-        if validate_location(second_word.as_str()){
+        if second_word.chars().next().unwrap().is_numeric(){
             return true;
         }
     }
     return false;
-}*/
+}
 
 pub fn add_vote(votes: &mut HashMap<String, String>, user_id: String, message_text: String){
     println!("VOTE: {}", message_text.to_lowercase());
@@ -124,7 +118,6 @@ fn activate_vote(final_vote: String, phase: &mut VotingPhase){
 
     if matches!(phase, VotingPhase::Regular) && first_word == "tower"{
         let second_word = final_vote.split(" ").nth(1).unwrap();
-        // TODO: match this...
 
         match second_word{
             "hero" => { Keyboard::U.click(); },
@@ -219,6 +212,23 @@ fn activate_vote(final_vote: String, phase: &mut VotingPhase){
 
     else if matches!(phase, VotingPhase::Regular) && first_word == "targeting"{
         Keyboard::Tab.click();
+    }
+
+    else if matches!(phase, VotingPhase::Regular) && first_word == "ability"{
+        let second_word = final_vote.split(" ").nth(1).unwrap();
+
+        match second_word{
+            "1" => { Keyboard::Number1.click(); },
+            "2" => { Keyboard::Number2.click(); },
+            "3" => { Keyboard::Number3.click(); },
+            "4" => { Keyboard::Number4.click(); },
+            "5" => { Keyboard::Number5.click(); },
+            "6" => { Keyboard::Number6.click(); },
+            "7" => { Keyboard::Number7.click(); },
+            "8" => { Keyboard::Number8.click(); },
+            "9" => { Keyboard::Number9.click(); },
+            _ => {}
+        }
     }
 }
 
