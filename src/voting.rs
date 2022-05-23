@@ -7,8 +7,7 @@ use std::time::Duration;
 
 pub enum VotingPhase{
     Regular,
-    Placement,
-    Upgrade
+    Placement
 }
 
 // Validate this is proper vote syntax
@@ -38,20 +37,31 @@ pub fn validate_vote(message_text: &str, phase: &VotingPhase) -> bool{
     // Upgrade a tower (ex: upgrade f17)
     else if matches!(phase, VotingPhase::Regular) && message_text.starts_with("upgrade "){
         let second_word = message_text.split(" ").nth(1).unwrap();
+        
+        match second_word{
+            "1" | "2" | "3" => { return true; }
+            _ => {}
+        }
+    }
+
+    // Select
+    else if matches!(phase, VotingPhase::Regular) && message_text.starts_with("select "){
+        let second_word = message_text.split(" ").nth(1).unwrap();
+
         if validate_location(second_word){
             return true;
         }
     }
 
-    else if matches!(phase, VotingPhase::Upgrade){
-        match message_text{
-            "1" | "2" | "3" => { return true; }
-            _ => {}
-        }
+    // Start / Speed up and down, sell, targeting
+    else if matches!(phase, VotingPhase::Regular) && (message_text == "start" || message_text == "speed" 
+    || message_text == "sell" || message_text == "targeting"){
+        return true;
     }
     return false;
 }
 
+/* TODO: Remove?
 pub fn validate_vote_select(message_text: &str, phase: &VotingPhase) -> bool{
     if matches!(phase, VotingPhase::Regular) && message_text.to_lowercase().starts_with("select "){
         let second_word = message_text.split(" ").nth(1).unwrap().trim_end().to_lowercase();
@@ -61,7 +71,7 @@ pub fn validate_vote_select(message_text: &str, phase: &VotingPhase) -> bool{
         }
     }
     return false;
-}
+}*/
 
 pub fn add_vote(votes: &mut HashMap<String, String>, user_id: String, message_text: String){
     println!("VOTE: {}", message_text.to_lowercase());
@@ -105,11 +115,6 @@ pub fn collect_votes(votes: &mut HashMap<String, String>, phase: &mut VotingPhas
         activate_vote(highest_vote, phase);
     }
     else{
-        // Switch back to regular phase if there's no input in the upgrade phase
-        if matches!(phase, VotingPhase::Upgrade){
-            println!("No input, switching back to regular phase...");
-            *phase = VotingPhase::Regular;
-        }
         //println!("Nobody voted, nothing happened...");
     }
 }
@@ -120,75 +125,34 @@ fn activate_vote(final_vote: String, phase: &mut VotingPhase){
     if matches!(phase, VotingPhase::Regular) && first_word == "tower"{
         let second_word = final_vote.split(" ").nth(1).unwrap();
         // TODO: match this...
-        if second_word == "hero"{
-            Keyboard::U.click();
+
+        match second_word{
+            "hero" => { Keyboard::U.click(); },
+            "dart" => { Keyboard::Q.click(); },
+            "boomerang" => { Keyboard::W.click(); },
+            "bomb" => { Keyboard::E.click(); },
+            "tack" => { Keyboard::R.click(); },
+            "ice" => { Keyboard::T.click(); },
+            "glue" => { Keyboard::Y.click(); },
+            "sniper" => { Keyboard::Z.click(); },
+            "sub" => { Keyboard::X.click(); },
+            "buccaneer" => { Keyboard::C.click(); },
+            "ace" => { Keyboard::V.click(); },
+            "heli" => { Keyboard::B.click(); },
+            "mortar" => { Keyboard::N.click(); },
+            "gunner" => { Keyboard::M.click(); },
+            "wizard" => { Keyboard::A.click(); },
+            "super" => { Keyboard::S.click(); },
+            "ninja" => { Keyboard::D.click(); },
+            "alchemist" => { Keyboard::F.click(); },
+            "druid" => { Keyboard::G.click(); },
+            "farm" => { Keyboard::H.click(); },
+            "engineer" => { Keyboard::L.click(); },
+            "factory" => { Keyboard::J.click(); },
+            "village" => { Keyboard::K.click(); },
+            _ => {}
         }
-        else if second_word == "dart"{
-            Keyboard::Q.click();
-        }
-        else if second_word == "boomerang"{
-            Keyboard::W.click();
-        }
-        else if second_word == "bomb"{
-            Keyboard::E.click();
-        }
-        else if second_word == "tack"{
-            Keyboard::R.click();
-        }
-        else if second_word == "ice"{
-            Keyboard::T.click();
-        }
-        else if second_word == "glue"{
-            Keyboard::Y.click();
-        }
-        else if second_word == "sniper"{
-            Keyboard::Z.click();
-        }
-        else if second_word == "sub"{
-            Keyboard::X.click();
-        }
-        else if second_word == "buccaneer"{
-            Keyboard::C.click();
-        }
-        else if second_word == "ace"{
-            Keyboard::V.click();
-        }
-        else if second_word == "heli"{
-            Keyboard::B.click();
-        }
-        else if second_word == "mortar"{
-            Keyboard::N.click();
-        }
-        else if second_word == "gunner"{
-            Keyboard::M.click();
-        }
-        else if second_word == "wizard"{
-            Keyboard::A.click();
-        }
-        else if second_word == "super"{
-            Keyboard::S.click();
-        }
-        else if second_word == "ninja"{
-            Keyboard::D.click();
-        }
-        else if second_word == "alchemist"{
-            Keyboard::F.click();
-        }
-        else if second_word == "druid"{
-            Keyboard::G.click();
-        }
-        else if second_word == "farm"{
-            Keyboard::H.click();
-        }
-        else if second_word == "engineer"{
-            Keyboard::L.click();
-        }
-        else if second_word == "factory"{
-            Keyboard::J.click();
-        }
-        else if second_word == "village"{
-            Keyboard::K.click();
-        }
+        
         *phase = VotingPhase::Placement;
         println!("Entering placement phase...");
     }
@@ -223,21 +187,12 @@ fn activate_vote(final_vote: String, phase: &mut VotingPhase){
         println!("Entering regular phase...");
     }
 
-    // Initiate upgrading a tower
+    // Upgrade a tower
     else if matches!(phase, VotingPhase::Regular) && first_word == "upgrade"{
         // The code is the same as selecting a tower, but we change the phase
         let second_word = final_vote.split(" ").nth(1).unwrap();
 
-        let (x_dist, y_dist) = calculate_location(second_word);
-
-        select_logic(x_dist, y_dist);
-        *phase = VotingPhase::Upgrade;
-        println!("Entering upgrade phase...");
-    }
-
-    // Upgrade a tower
-    else if matches!(phase, VotingPhase::Upgrade){
-        match final_vote.as_str(){
+        match second_word{
             "1" => { Keyboard::Comma.click(); *phase = VotingPhase::Regular; },
             "2" => { Keyboard::Period.click(); *phase = VotingPhase::Regular; },
             "3" => { Keyboard::Slash.click(); *phase = VotingPhase::Regular; },
@@ -245,13 +200,25 @@ fn activate_vote(final_vote: String, phase: &mut VotingPhase){
         }
     }
 
-    // Shorter votes only
+    // Selecting a tower
     else if matches!(phase, VotingPhase::Regular) && first_word == "select"{
         let second_word = final_vote.split(" ").nth(1).unwrap();
 
         let (x_dist, y_dist) = calculate_location(second_word);
 
         select_logic(x_dist, y_dist);
+    }
+
+    else if matches!(phase, VotingPhase::Regular) && (first_word == "start" || first_word == "speed"){
+        Keyboard::Space.click();
+    }
+
+    else if matches!(phase, VotingPhase::Regular) && first_word == "sell"{
+        Keyboard::BackSpace.click();
+    }
+
+    else if matches!(phase, VotingPhase::Regular) && first_word == "targeting"{
+        Keyboard::Tab.click();
     }
 }
 
