@@ -4,7 +4,7 @@ use twitch_irc::SecureTCPTransport;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::message::ServerMessage;
 
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration};
 use tokio::{task, time};
 
 use std::collections::HashMap;
@@ -12,17 +12,20 @@ use std::collections::HashMap;
 use parking_lot::Mutex;
 use std::sync::Arc;
 
-use mouse_rs::{Mouse, types::keys::Keys};
+//use mouse_rs::{Mouse, types::keys::Keys};
 
 mod voting;
 
-const SCREEN_X: i32 = 1920;
-const SCREEN_Y: i32 = 1080;
+//const SCREEN_X: i32 = 1920;
+//const SCREEN_Y: i32 = 1080;
+const DEFAULT_TIMER: i32 = 4;
+const DEFAULT_SHORT_TIMER: i32 = 2;
 
 #[tokio::main]
 pub async fn main() {
     let votes: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let phase: Arc<Mutex<voting::VotingPhase>> = Arc::new(Mutex::new(voting::VotingPhase::Regular));
+    let shorter_votes: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new())); // eg: select
     
     let config = ClientConfig::default();
     let (mut incoming_messages, client) =
@@ -30,6 +33,7 @@ pub async fn main() {
 
     let votes_arc = votes.clone();
     let phase_arc = phase.clone();
+    let shorter_votes_arc = shorter_votes.clone();
     let join_handle = tokio::spawn(async move{
         while let Some(message) = incoming_messages.recv().await {
             //println!("Received message: {:?}", message);
@@ -40,6 +44,10 @@ pub async fn main() {
                     if voting::validate_vote(msg.message_text.as_str(), phase_arc){
                         let mut votes_arc = votes_arc.lock();
                         voting::add_vote(&mut votes_arc, msg.sender.id, msg.message_text);
+                    }
+                    else if voting::validate_vote_select(msg.message_text.as_str(), phase_arc){
+                        let mut shorter_votes_arc = shorter_votes_arc.lock();
+                        voting::add_vote(&mut shorter_votes_arc, msg.sender.id, msg.message_text);
                     }
                 },
                 _ => {}
@@ -52,14 +60,28 @@ pub async fn main() {
 
     let votes_arc = votes.clone();
     let phase_arc = phase.clone();
-    let forever = task::spawn(async move{
-        let mut interval = time::interval(Duration::from_secs(8));
+    let shorter_votes_arc = shorter_votes.clone();
+    let timer = task::spawn(async move{
+        let mut interval = time::interval(Duration::from_secs(1));
+        let mut countdown = DEFAULT_TIMER;
+        let mut countdown_shorter = DEFAULT_SHORT_TIMER;
 
         loop {
             interval.tick().await;
-            let mut votes_arc = votes_arc.lock();
+            countdown -= 1;
+            countdown_shorter -= 1;
+            //println!("{} {}", countdown, countdown_select);
             let mut phase_arc = phase_arc.lock();
-            voting::collect_votes(&mut votes_arc, &mut phase_arc);
+            if countdown <= 0{
+                let mut votes_arc = votes_arc.lock();
+                voting::collect_votes(&mut votes_arc, &mut phase_arc);
+                countdown = DEFAULT_TIMER;
+            }
+            else if countdown_shorter <= 0{
+                let mut shorter_votes_arc = shorter_votes_arc.lock();
+                voting::collect_votes(&mut shorter_votes_arc, &mut phase_arc);
+                countdown_shorter = DEFAULT_SHORT_TIMER;
+            }
         }
     });
 
@@ -83,6 +105,6 @@ pub async fn main() {
     });*/
 
     join_handle.await.unwrap();
-    forever.await.unwrap();
+    timer.await.unwrap();
     //mouse_derp.await.unwrap();
 }
