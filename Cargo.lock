@@ -1065,6 +1065,7 @@ dependencies = [
 name = "twitch-test"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "mki",
  "mouse-rs",
  "parking_lot",

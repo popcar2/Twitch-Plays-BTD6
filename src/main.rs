@@ -13,6 +13,7 @@ use parking_lot::Mutex;
 use std::sync::Arc;
 
 mod voting;
+mod config;
 
 //const SCREEN_X: i32 = 1920;
 //const SCREEN_Y: i32 = 1080;
@@ -20,6 +21,7 @@ const DEFAULT_TIMER: i32 = 2;
 
 #[tokio::main]
 pub async fn main() {
+    let stuff = config::Configs::new();
     let votes: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let phase: Arc<Mutex<voting::VotingPhase>> = Arc::new(Mutex::new(voting::VotingPhase::Regular));
     
