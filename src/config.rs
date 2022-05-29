@@ -1,6 +1,6 @@
 // This file handles the config file for the program
 use std::fs::File;
-use std::io::{Write, BufReader, BufRead};
+use std::io::{Write, BufReader, BufRead, ErrorKind};
 
 pub struct Configs{
     pub twitch_username: String,
@@ -11,7 +11,16 @@ pub struct Configs{
 impl Configs{
     pub fn new() -> Configs{
         let path = "config.cfg";
-        let file = File::open(path).unwrap(); // TODO: error handle and create default cfg file
+        // Creates the config file with default values if it doesn't exist, then opens it.
+        File::open(path).unwrap_or_else(|error| {
+            let mut cfg_file = File::create(path).unwrap();
+            if error.kind() == ErrorKind::NotFound{
+                write!(cfg_file, "twitch_username = USERNAME\ntimer = 10\nscreen_scaling = 1.0").unwrap();
+            }
+            cfg_file
+        });
+        let file = File::open(path).unwrap();
+
         let buf_reader = BufReader::new(file);
 
         let mut twitch_username: String = String::from("USERNAME");

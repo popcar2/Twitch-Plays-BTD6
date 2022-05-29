@@ -22,6 +22,7 @@ const DEFAULT_TIMER: i32 = 2;
 #[tokio::main]
 pub async fn main() {
     let stuff = config::Configs::new();
+    println!("{} {} {}", stuff.twitch_username, stuff.timer, stuff.screen_scaling);
     let votes: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let phase: Arc<Mutex<voting::VotingPhase>> = Arc::new(Mutex::new(voting::VotingPhase::Regular));
     
