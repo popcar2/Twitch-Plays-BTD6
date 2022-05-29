@@ -5,6 +5,8 @@ use mouse_rs::{Mouse, types::keys::Keys};
 use std::thread;
 use std::time::Duration;
 
+use super::config::CONFIG_VARS;
+
 pub enum VotingPhase{
     Regular,
     Placement
@@ -171,8 +173,8 @@ fn activate_vote(final_vote: String, phase: &mut VotingPhase){
             mouse.release(&Keys::LEFT).expect("Unable to release button");
 
             thread::sleep(Duration::from_millis(100));
-            let x_dist = (f64::from(1920 / 40 * 33 + 25) / 1.25).floor() as i32;
-            let y_dist = (f64::from(1080 / 24 * 3) / 1.25).floor() as i32;
+            let x_dist = (f64::from(1920 / 40 * 33 + 25) / CONFIG_VARS.screen_scaling).floor() as i32;
+            let y_dist = (f64::from(1080 / 24 * 3) / CONFIG_VARS.screen_scaling).floor() as i32;
             mouse.move_to(x_dist, y_dist).expect("Unable to move mouse");
             mouse.press(&Keys::LEFT).expect("Unable to press button");
             mouse.release(&Keys::LEFT).expect("Unable to release button");
@@ -295,8 +297,8 @@ fn calculate_location(location_text: &str) -> (i32, i32){
         column = String::from(location_text)[1..2].parse::<u32>().unwrap();
     }
 
-    let x_dist = (f64::from(1920 / 40 * column + 25) / 1.25).floor() as i32;
-    let y_dist = (f64::from(1080 / 24 * row) / 1.25).floor() as i32;
+    let x_dist = (f64::from(1920 / 40 * column + 25) / CONFIG_VARS.screen_scaling).floor() as i32;
+    let y_dist = (f64::from(1080 / 24 * row) / CONFIG_VARS.screen_scaling).floor() as i32;
 
     (x_dist, y_dist)
 }

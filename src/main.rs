@@ -15,14 +15,12 @@ use std::sync::Arc;
 mod voting;
 mod config;
 
-//const SCREEN_X: i32 = 1920;
-//const SCREEN_Y: i32 = 1080;
-const DEFAULT_TIMER: i32 = 2;
-
 #[tokio::main]
 pub async fn main() {
-    let stuff = config::Configs::new();
-    println!("{} {} {}", stuff.twitch_username, stuff.timer, stuff.screen_scaling);
+    //println!("{} {} {}", config::CONFIG_VARS.twitch_username, config::CONFIG_VARS.timer, config::CONFIG_VARS.screen_scaling);
+    if config::CONFIG_VARS.twitch_username == "username"{
+        println!("You forgot to set your Twitch username in the config file!");
+    }
     let votes: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let phase: Arc<Mutex<voting::VotingPhase>> = Arc::new(Mutex::new(voting::VotingPhase::Regular));
     
@@ -49,13 +47,13 @@ pub async fn main() {
     });
 
     
-    client.join("popcar2".to_owned()).unwrap();
+    client.join(config::CONFIG_VARS.twitch_username.to_owned()).unwrap();
 
     let votes_arc = votes.clone();
     let phase_arc = phase.clone();
     let timer = task::spawn(async move{
         let mut interval = time::interval(Duration::from_secs(1));
-        let mut countdown = DEFAULT_TIMER;
+        let mut countdown = config::CONFIG_VARS.timer;
 
         loop {
             interval.tick().await;
@@ -64,7 +62,7 @@ pub async fn main() {
             if countdown <= 0{
                 let mut votes_arc = votes_arc.lock();
                 voting::collect_votes(&mut votes_arc, &mut phase_arc);
-                countdown = DEFAULT_TIMER;
+                countdown = config::CONFIG_VARS.timer;
             }
         }
     });

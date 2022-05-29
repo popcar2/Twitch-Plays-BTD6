@@ -1,11 +1,16 @@
-// This file handles the config file for the program
+// This file handles the config file for the program then stores it in the static variable "CONFIG_VARS"
 use std::fs::File;
 use std::io::{Write, BufReader, BufRead, ErrorKind};
+use lazy_static::lazy_static;
+
+lazy_static!{
+    pub static ref CONFIG_VARS: Configs = Configs::new();
+}
 
 pub struct Configs{
     pub twitch_username: String,
     pub timer: usize,
-    pub screen_scaling: f32
+    pub screen_scaling: f64
 }
 
 impl Configs{
@@ -25,7 +30,7 @@ impl Configs{
 
         let mut twitch_username: String = String::from("USERNAME");
         let mut timer: usize = 10;
-        let mut screen_scaling: f32 = 1.0;
+        let mut screen_scaling: f64 = 1.0;
 
         for line in buf_reader.lines(){
             let var_name = line.as_ref().unwrap().split("=").next().unwrap().trim().to_lowercase();
@@ -34,7 +39,7 @@ impl Configs{
             match var_name.as_str(){
                 "twitch_username" => { twitch_username = var_value; },
                 "timer" => { timer = var_value.parse::<usize>().unwrap().clone(); },
-                "screen_scaling" => { screen_scaling = var_value.parse::<f32>().unwrap().clone(); }
+                "screen_scaling" => { screen_scaling = var_value.parse::<f64>().unwrap().clone(); }
                 _ => {}
             }
         }
